@@ -1,0 +1,104 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <Keypad.h>
+
+// Initialisation de l'écran LCD I2C avec l'adresse 0x27
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// Configuration du clavier matriciel
+const byte ROWS = 4;
+const byte COLS = 3;
+char keys[ROWS][COLS] = {
+  {'1','2','3'},
+  {'4','5','6'},
+  {'7','8','9'},
+  {'*','0','#'}
+};
+byte rowPins[ROWS] = {9, 8, 7, 6};
+byte colPins[COLS] = {5, 4, 3};
+
+Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
+
+// Pin pour le capteur infrarouge
+const int irSensorPin = A0;
+
+// Pin pour le buzzer
+const int buzzerPin = 10;
+
+// Nombre de plats restants
+int platsRestants = 0;
+
+void setup() {
+  lcd.init();        // Initialisation de l'affichage LCD
+  lcd.backlight();   // Allumer le rétroéclairage
+  lcd.setCursor(5, 0);
+  lcd.print("C-Resto");
+  delay(2000);
+  lcd.setCursor(4, 1);
+  lcd.print("Bienvenue...");
+  delay(3000);
+  tone(buzzerPin, 1000, 1000);
+  lcd.clear();
+  lcd.print("Entrez le nb de");
+  lcd.setCursor(0, 1);
+  lcd.print("Plats:");
+
+  pinMode(irSensorPin, INPUT);
+  pinMode(buzzerPin, OUTPUT);  // Définir la broche du buzzer comme sortie
+delay(1000);
+}
+
+void loop() {
+  char key = keypad.getKey();
+
+  if (key) {
+    if (key >= '0' && key <= '9') {
+      platsRestants = platsRestants * 10 + (key - '0');
+      lcd.clear();
+      lcd.print("Plats:");
+      lcd.setCursor(0, 1);
+      lcd.print(platsRestants);
+      tone(buzzerPin, 1000, 100);  // Émettre un bip court (100ms) à 1000Hz
+    } 
+    else if (key == '#') { 
+      lcd.clear();
+      lcd.print("Nb de plats:");
+      lcd.setCursor(0, 1);
+      lcd.print(platsRestants);
+      delay(1000);
+      lcd.clear();
+      lcd.print("Plats restants:");
+      lcd.setCursor(0, 1);
+      lcd.print(platsRestants);
+      tone(buzzerPin, 1000, 500);  // Émettre un bip long (500ms) à 1000Hz
+    }
+    else if (key == '*') {  // Fonction de réinitialisation
+      platsRestants = 0;
+      lcd.clear();
+      lcd.print("Remise a zero");
+      delay(1000);
+      lcd.clear();
+      lcd.print("Plats restants:");
+      lcd.setCursor(0, 1);
+      lcd.print(platsRestants);
+      tone(buzzerPin, 1000, 100);  // Émettre un bip court (100ms) à 1000Hz
+    }
+  }
+
+  int irState = digitalRead(irSensorPin);
+
+  if (irState == HIGH) {
+    delay(500);
+    platsRestants--;
+    
+    lcd.clear();
+    lcd.print("Plats restants:");
+    lcd.setCursor(0, 1);
+    lcd.print(platsRestants);
+
+    while (digitalRead(irSensorPin) == HIGH) {
+      delay(100);
+    }
+  }
+}
+// Tout droit reserver à Aventronique
